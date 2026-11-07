@@ -1061,6 +1061,13 @@ footer .names {
     transform: none;
   }
 }
+
+/* Share / Copy */
+.share-box{margin-top:34px;text-align:center}
+.share-btns .btn{margin:8px 5px 0}
+.share-btns .btn + .btn{margin-left:5px}
+.toast{min-height:1.4em;margin-top:12px;color:var(--dark-rose);font-family:var(--cap);font-size:.72rem;letter-spacing:.16em;opacity:0;transition:opacity .3s}
+.toast.on{opacity:1}
 </style>
 </head>
 <body class="pre">
@@ -1326,6 +1333,16 @@ footer .names {
           <div class="qr" id="qrR"></div>
           <small class="qc">Scan for location</small>
         </div>
+      </div>
+
+      <!-- Share / Copy Link -->
+      <div class="share-box">
+        <div class="cap">Share the joy</div>
+        <div class="share-btns">
+          <button class="btn solid" id="shareBtn" type="button">&#x1F4E4; Share</button>
+          <button class="btn" id="copyBtn" type="button">&#x1F517; Copy Link</button>
+        </div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
       </div>
     </section>
 
@@ -1623,6 +1640,47 @@ for (var i = 0; i < 22; i++) {
   s.style.opacity = 0.35 + Math.random() * 0.45;
   document.body.appendChild(s);
 }
+
+/* ==========================================================================
+   SHARE / COPY LINK  (edit the text or link below)
+   ========================================================================== */
+var SHARE_URL = "https://ijas-luhana-reception.vercel.app/";
+var SHARE_TEXT = "You are cordially invited to the wedding celebration of A. Ijas Ahamed & J. Luhana Fathima! \uD83D\uDC8D\n" +
+  "Dates: 12th\u201314th December 2026 (Pollachi & Coimbatore).\n" +
+  "View the digital invitation here : " + SHARE_URL;
+var toastTimer;
+function showToast(msg) {
+  var t = $("toast");
+  t.textContent = msg;
+  t.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { t.classList.remove("on"); }, 2600);
+}
+function copyText(txt) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(txt);
+  }
+  return new Promise(function(res, rej) {
+    var ta = document.createElement("textarea");
+    ta.value = txt;
+    ta.style.cssText = "position:fixed;opacity:0;left:-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy") ? res() : rej(); } catch (e) { rej(e); }
+    document.body.removeChild(ta);
+  });
+}
+$("copyBtn").addEventListener("click", function() {
+  copyText(SHARE_TEXT).then(function() { showToast("Invitation message copied \u2713"); },
+    function() { showToast("Could not copy \u2013 please copy manually"); });
+});
+$("shareBtn").addEventListener("click", function() {
+  if (navigator.share) {
+    navigator.share({ title: "Ijas & Luhana \u2013 Wedding Invitation", text: SHARE_TEXT }).catch(function() {});
+  } else {
+    window.open("https://wa.me/?text=" + encodeURIComponent(SHARE_TEXT), "_blank", "noopener");
+  }
+});
 </script>
 </body>
 </html>
