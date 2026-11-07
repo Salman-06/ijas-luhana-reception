@@ -1402,89 +1402,59 @@ tick();
 setInterval(tick, 1000);
 
 /* ==========================================================================
-   AMBIENT SYNTHESIZER MUSIC ENGINE (No external audio file needed)
+   BACKGROUND MUSIC: NASHEED - Jamal-ul-wujood (embedded, loops)
    ========================================================================== */
-var AC, master, muted = false, started = false, VOL = 0.45;
+var muted = false, started = false, VOL = 0.55, fadeTimer = null;
+/* >>> CHANGE YOUR SONG HERE: put your mp3 next to index.html and set its file name <<< */
+var MUSIC_SRC = "music.mp3";
+var music = new Audio(MUSIC_SRC);
+music.loop = true;
+music.preload = "auto";
+music.volume = 0;
+
+function fadeTo(target, ms) {
+  clearInterval(fadeTimer);
+  var step = (target - music.volume) / (ms / 40);
+  fadeTimer = setInterval(function() {
+    var v = music.volume + step;
+    if ((step >= 0 && v >= target) || (step < 0 && v <= target)) {
+      music.volume = Math.max(0, Math.min(1, target));
+      clearInterval(fadeTimer);
+      if (target === 0) music.pause();
+    } else {
+      music.volume = Math.max(0, Math.min(1, v));
+    }
+  }, 40);
+}
 
 function startAudio() {
   try {
-    AC = new (window.AudioContext || window.webkitAudioContext)();
-    master = AC.createGain();
-    master.gain.value = 0;
-    master.connect(AC.destination);
-
-    var dly = AC.createDelay(1), fb = AC.createGain(), wet = AC.createGain();
-    dly.delayTime.value = 0.42;
-    fb.gain.value = 0.5;
-    wet.gain.value = 0.55;
-    dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(master);
-
-    // Warm chord drone
-    [146.83, 220, 293.66, 369.99].forEach(function(f, i) {
-      var o = AC.createOscillator(), g = AC.createGain(), l = AC.createOscillator(), lg = AC.createGain();
-      o.type = i % 2 ? "triangle" : "sine";
-      o.frequency.value = f;
-      o.detune.value = (i - 1.5) * 5;
-      g.gain.value = 0.05;
-      l.frequency.value = 0.06 + i * 0.03;
-      lg.gain.value = 0.025;
-      l.connect(lg);
-      lg.connect(g.gain);
-      o.connect(g);
-      g.connect(master);
-      o.start();
-      l.start();
-    });
-
-    // Gentle royal chimes
-    var sc = [293.66, 311.13, 369.99, 392, 440, 466.16, 523.25, 587.33], ix = 2;
-    function chime() {
-      if (!AC || AC.state !== "running") return;
-      ix = Math.max(0, Math.min(sc.length - 1, ix + Math.floor(Math.random() * 5) - 2));
-      var t = AC.currentTime, o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain();
-      o.type = "sine";
-      o.frequency.value = sc[ix];
-      o2.type = "sine";
-      o2.frequency.value = sc[ix] * 2.01;
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.15, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0008, t + 3);
-      o.connect(g);
-      o2.connect(g);
-      g.connect(master);
-      g.connect(dly);
-      o.start(t);
-      o2.start(t);
-      o.stop(t + 3.2);
-      o2.stop(t + 3.2);
-    }
-    setInterval(chime, 1400);
-    chime();
-
-    master.gain.linearRampToValueAtTime(VOL, AC.currentTime + 3.5);
+    var p = music.play();
+    if (p && p.catch) p.catch(function() {});
     started = true;
+    fadeTo(VOL, 3000);
   } catch (e) {}
 }
 
 function setMute(m) {
   muted = m;
-  $("snd").textContent = m ? "🔇" : "🔊";
-  if (!AC) return;
+  $("snd").textContent = m ? "\uD83D\uDD07" : "\uD83D\uDD0A";
+  if (!started) return;
   if (m) {
-    master.gain.setTargetAtTime(0, AC.currentTime, 0.25);
-    setTimeout(function() { if (muted) AC.suspend(); }, 900);
+    fadeTo(0, 500);
   } else {
-    AC.resume();
-    master.gain.setTargetAtTime(VOL, AC.currentTime, 0.4);
+    var p = music.play();
+    if (p && p.catch) p.catch(function() {});
+    fadeTo(VOL, 800);
   }
 }
 
 $("snd").addEventListener("click", function() { setMute(!muted); });
 
 document.addEventListener("visibilitychange", function() {
-  if (!AC) return;
-  if (document.hidden) AC.suspend();
-  else if (!muted) AC.resume();
+  if (!started) return;
+  if (document.hidden) music.pause();
+  else if (!muted) { var p = music.play(); if (p && p.catch) p.catch(function() {}); }
 });
 
 // Open Invitation Handler
