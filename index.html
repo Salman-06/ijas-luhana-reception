@@ -1434,8 +1434,17 @@ music.loop = true;
 music.preload = "auto";
 music.volume = 0;
 
+/* iOS Safari ignores audio.volume (read-only, always 1), so fades never finish there */
+var canSetVolume = (function() {
+  try { var a = new Audio(); a.volume = 0.5; return a.volume === 0.5; } catch (e) { return false; }
+})();
+
 function fadeTo(target, ms) {
   clearInterval(fadeTimer);
+  if (!canSetVolume) {            /* iOS: no fading, just pause / play */
+    if (target === 0) music.pause();
+    return;
+  }
   var step = (target - music.volume) / (ms / 40);
   fadeTimer = setInterval(function() {
     var v = music.volume + step;
